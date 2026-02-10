@@ -1,7 +1,6 @@
-package me.ybbbno.radio.data;
+package me.ybbbno.radio.block.data;
 
 import me.deadybbb.ybmj.BasicConfigHandler;
-import me.deadybbb.ybmj.LegacyTextHandler;
 import me.deadybbb.ybmj.PluginProvider;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
@@ -26,26 +25,35 @@ public class RadioDataConfigManager extends BasicConfigHandler {
             ConfigurationSection dataSection = section.getConfigurationSection(key);
             if (dataSection == null) continue;
 
-            Location location = Location.deserialize(dataSection.getValues(false));
+            ConfigurationSection locMap = dataSection.getConfigurationSection("location");
+            if(locMap == null) continue;
+
+            Location location = Location.deserialize(locMap.getValues(false));
             RadioState state = RadioState.valueOf(dataSection.getString("state", "INPUT"));
             int frequency = dataSection.getInt("frequency");
 
-            radioDataList.add(new RadioData(location, state, frequency));
+            String name = dataSection.getString("name", "Радио");
+
+            radioDataList.add(new RadioData(name, location, state, frequency));
         }
 
         return radioDataList;
     }
 
     public void setRadioData(List<RadioData> radioDataList) {
-        List<ConfigurationSection> sections = new ArrayList<>();
+
+        config.set("radio_data", null);
+
         for (int i = 0; i < radioDataList.size(); i++) {
-            ConfigurationSection section = config.createSection(String.valueOf(i));
-            section.set("location", radioDataList.get(i).getLocation().serialize());
-            section.set("state", radioDataList.get(i).getState().name());
-            section.set("frequency", radioDataList.get(i).getFrequency());
-            sections.add(section);
+            String key = String.valueOf(i);
+            RadioData data = radioDataList.get(i);
+
+            config.set("radio_data." + key + ".name", data.name());
+            config.set("radio_data." + key + ".location", data.location().serialize());
+            config.set("radio_data." + key + ".state", data.state().name());
+            config.set("radio_data." + key + ".frequency", data.frequency());
         }
-        config.set("radio_data", sections);
+
         saveConfig();
     }
 }

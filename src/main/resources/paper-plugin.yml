@@ -1,5 +1,19 @@
 name: Radio
-version: '0.1'
+version: '0.1.1'
 main: me.ybbbno.radio.Radio
 api-version: '1.21'
-authors: [ Ybbb ]
+authors: [ Ybbb, Nybik_YT ]
+dependencies:
+  server:
+    YBMJ:
+      load: BEFORE
+      required: true
+    voicechat:
+      load: BEFORE
+      required: true
+    CustomSounds:
+      load: BEFORE
+      required: true
+    CustomSkulls:
+      load: BEFORE
+      required: true

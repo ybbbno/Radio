@@ -1,0 +1,3 @@
+permissions:
+  radio.use:
+    default: op

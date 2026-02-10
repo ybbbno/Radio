@@ -1,6 +1,7 @@
-package me.ybbbno.radio.data;
+package me.ybbbno.radio.block;
 
-import me.ybbbno.radio.data.blockdisplay.BlockPart;
+import me.ybbbno.radio.block.part.BlockPart;
+import me.ybbbno.radio.block.data.RadioData;
 import org.bukkit.entity.TextDisplay;
 
 import java.util.List;
@@ -16,10 +17,10 @@ public class RadioBlock {
         this.indicator = indicator;
     }
 
-    public RadioData getData() { return data; }
-    public void setData(RadioData data) { this.data = data; }
-    public List<BlockPart> getParts() { return parts; }
-    public void setParts(List<BlockPart> parts) { this.parts = parts; }
-    public TextDisplay getIndicator() { return indicator; }
-    public void setIndicator(TextDisplay indicator) { this.indicator = indicator; }
+    public RadioData data() { return data; }
+    public void data(RadioData data) { this.data = data; }
+    public List<BlockPart> parts() { return parts; }
+    public void parts(List<BlockPart> parts) { this.parts = parts; }
+    public TextDisplay indicator() { return indicator; }
+    public void indicator(TextDisplay indicator) { this.indicator = indicator; }
 }
