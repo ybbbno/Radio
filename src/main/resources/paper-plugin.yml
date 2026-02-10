@@ -1,0 +1,5 @@
+name: Radio
+version: '0.1'
+main: me.ybbbno.radio.Radio
+api-version: '1.21'
+authors: [ Ybbb ]
