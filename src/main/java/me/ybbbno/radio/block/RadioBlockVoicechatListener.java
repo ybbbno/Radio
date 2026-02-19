@@ -86,9 +86,10 @@ public class RadioBlockVoicechatListener implements VoicechatLifecycleListener {
                         if (input.data().frequency() != output.data().frequency()) return;
 
                         Location loc = output.data().location();
-                        if (!loc.isChunkLoaded()) return;
+                        if (!loc.isChunkLoaded() || loc.getY() <= 25) return;
 
-                        managerS.sendData(packet, loc);
+                        if (managerS.getLocational(loc) != null)
+                            managerS.sendData(packet, loc);
 
                         if (System.currentTimeMillis() % 500L < 20L) {
                             loc.getWorld().spawnParticle(Particle.NOTE, loc.getX() + 0.5,

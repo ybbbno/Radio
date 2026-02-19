@@ -9,7 +9,10 @@ import me.ybbbno.radio.block.part.BlockPartManager;
 import me.ybbbno.radio.block.data.RadioData;
 import me.ybbbno.radio.block.data.RadioDataConfigManager;
 import me.ybbbno.radio.block.data.RadioState;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +22,7 @@ public class RadioBlockManager extends BasicManagerHandler {
     private final BlockPartManager blockPartsM;
     private final RadioDataConfigManager config;
     private VoicechatManager managerS;
+    private BukkitTask visibilityTask;
 
     public RadioBlockManager(PluginProvider plugin) {
         super(plugin);
@@ -36,13 +40,43 @@ public class RadioBlockManager extends BasicManagerHandler {
             RadioBlock block = new RadioBlock(data, blockPartsM.getBlockParts(data), blockPartsM.getFrequencyIndicator(data));
             radioBlocks.add(block);
         });
+
+        visibilityTask = Bukkit.getScheduler().runTaskTimer(
+                plugin,
+                this::updateVisibility,
+                20L, 20L
+        );
     }
 
     @Override
     protected void onDeinit() {
+        if (visibilityTask != null) {
+            visibilityTask.cancel();
+            visibilityTask = null;
+        }
         config.setRadioData(radioBlocks.stream().map(RadioBlock::data).toList());
         blockPartsM.deinit();
         removeAllBlocks();
+    }
+
+    public void updateVisibility() {
+        for (RadioBlock block : radioBlocks) {
+            Location loc = block.data().location();
+            boolean hasPlayersNearby = false;
+
+            for (Player player : loc.getWorld().getPlayers()) {
+                if (player.getLocation().distanceSquared(loc) <= 1024) {
+                    hasPlayersNearby = true;
+                    break;
+                }
+            }
+
+            if (hasPlayersNearby) {
+                showBlock(block);
+            } else {
+                hideBlock(block);
+            }
+        }
     }
 
     public void setBlock(RadioData data) {
@@ -54,8 +88,8 @@ public class RadioBlockManager extends BasicManagerHandler {
         if (loc == null || state == null || frequency == null) return;
         radioBlocks.removeIf(block -> block.data().location().distance(loc) == 0);
         RadioData data = new RadioData(name, loc, state, frequency);
-        RadioBlock block = new RadioBlock(data, blockPartsM.getBlockParts(data), blockPartsM.getFrequencyIndicator(data));
-        managerS.createAudioPlayer(block.data().location(), 16, RadioBlockVoicechatListener.RADIO_VOLUME_CATEGORY);
+        RadioBlock block = new RadioBlock(data, null, null);
+        showBlock(block);
         radioBlocks.add(block);
     }
 
@@ -66,11 +100,7 @@ public class RadioBlockManager extends BasicManagerHandler {
     }
 
     public void removeAllBlocks() {
-        radioBlocks.forEach(block -> {
-            block.parts().forEach(part -> part.display().remove());
-            block.indicator().remove();
-            managerS.destroyByLocation(block.data().location());
-        });
+        radioBlocks.forEach(this::hideBlock);
 
         radioBlocks.clear();
     }
@@ -78,9 +108,7 @@ public class RadioBlockManager extends BasicManagerHandler {
     public void removeBlock(Location loc) {
         radioBlocks.forEach(block -> {
             if (block.data().location().distance(loc) == 0) {
-                block.parts().forEach(part -> part.display().remove());
-                block.indicator().remove();
-                managerS.destroyByLocation(block.data().location());
+                hideBlock(block);
             }
         });
 
@@ -105,5 +133,25 @@ public class RadioBlockManager extends BasicManagerHandler {
 
             return outDistance <= distance;
         }).toList();
+    }
+
+    private void showBlock(RadioBlock block) {
+        if (block.parts() == null) block.parts(blockPartsM.getBlockParts(block.data()));
+        if (block.indicator() == null) block.indicator(blockPartsM.getFrequencyIndicator(block.data()));
+        if (managerS.getLocational(block.data().location()) == null)
+            managerS.createAudioPlayer(block.data().location(), 16, RadioBlockVoicechatListener.RADIO_VOLUME_CATEGORY);
+    }
+
+    private void hideBlock(RadioBlock block) {
+        if (block.parts() != null) {
+            block.parts().forEach(part -> part.display().remove());
+            block.parts(null);
+        }
+        if (block.indicator() != null) {
+            block.indicator().remove();
+            block.indicator(null);
+        }
+        if (managerS.getLocational(block.data().location()) != null)
+            managerS.destroyByLocation(block.data().location());
     }
 }
