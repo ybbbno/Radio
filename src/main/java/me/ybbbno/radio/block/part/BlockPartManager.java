@@ -35,53 +35,69 @@ public class BlockPartManager extends BasicManagerHandler {
     protected void onDeinit() { }
 
     public List<BlockPart> getBlockParts(RadioData data) {
+        Location loc = data.location().clone().add(0.5, 0.5, 0.5);
+
+        if (!loc.isChunkLoaded()) {
+            return List.of();
+        }
+
         return getBlockParts(data.location().clone().add(0.5, 0.5, 0.5), data.state());
     }
 
     public List<BlockPart> getBlockParts(Location loc, RadioState state) {
-        if (!is_init) return List.of();
         List<BlockPart> parts = new ArrayList<>();
+
+        if (loc.getWorld() == null || !loc.isChunkLoaded()) return parts;
+
         for (SkullDisplay skull : managerD.getDisplays().stream().filter(d -> d.name().contains("radio-block-part")).toList()){
             int index = RadioState.valueOf(state);
             ItemDisplay display = managerD.getItemDisplayBySkull(skull, loc, index);
-            parts.add(new BlockPart(display, skull, index));
+
+            if (display != null && display.isValid()) {
+                parts.add(new BlockPart(display, skull, index));
+            }
         }
         return parts;
     }
 
     public void updateParts(RadioBlock block) {
-        if (!is_init) return;
+        if (!block.data().location().isChunkLoaded()) return;
         changeBlockParts(block);
         changeFrequencyIndicator(block);
     }
 
     public void changeBlockParts(RadioBlock block) {
-        if (!is_init) return;
-
         changeBlockParts(block.parts(), block.data().state());
     }
 
     public void changeBlockParts(List<BlockPart> parts, RadioState state) {
-        if (!is_init) return;
+        if (parts == null) return;
+
         for (BlockPart part : parts) {
-            part.skin_index(RadioState.valueOf(state));
-            changeBlockPart(part);
+            if (part.display() != null && part.display().isValid()) {
+                part.skin_index(RadioState.valueOf(state));
+                changeBlockPart(part);
+            }
         }
     }
 
     public void changeBlockPart(BlockPart part) {
-        if (!is_init) return;
         SkullDisplay skull = part.skull();
 
         part.display().setItemStack(managerD.getItemBySkull(skull, part.skin_index()));
     }
 
     public TextDisplay getFrequencyIndicator(RadioData data) {
-        return getFrequencyIndicator(data.location().clone().add(0.5, 0.5, 0.5), data.frequency());
+        Location loc = data.location().clone().add(0.5, 0.5, 0.5);
+
+        if (!loc.isChunkLoaded()) {
+            return null;
+        }
+
+        return getFrequencyIndicator(loc, data.frequency());
     }
 
     public TextDisplay getFrequencyIndicator(Location loc, int frequency) {
-        if (!is_init) return null;
         TextDisplay display = loc.getWorld().spawn(loc, TextDisplay.class);
         display.text(Component.text(String.valueOf(frequency), NamedTextColor.DARK_RED));
         display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
@@ -94,12 +110,13 @@ public class BlockPartManager extends BasicManagerHandler {
     }
 
     public void changeFrequencyIndicator(RadioBlock block) {
-        if (!is_init) return;
-        changeFrequencyIndicator(block.indicator(), block.data().frequency());
+        TextDisplay indicator = block.indicator();
+        if (indicator != null && indicator.isValid()) {
+            changeFrequencyIndicator(indicator, block.data().frequency());
+        }
     }
 
     public void changeFrequencyIndicator(TextDisplay display, int frequency) {
-        if (!is_init) return;
         display.text(Component.text(String.valueOf(frequency), NamedTextColor.DARK_RED));
     }
 }

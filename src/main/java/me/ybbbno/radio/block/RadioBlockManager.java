@@ -5,6 +5,7 @@ import me.deadybbb.ybmj.BasicManagerHandler;
 import me.deadybbb.ybmj.PluginProvider;
 import me.ybbbno.customsounds.CustomSoundsAPI;
 import me.ybbbno.customsounds.VoicechatManager;
+import me.ybbbno.radio.block.part.BlockPart;
 import me.ybbbno.radio.block.part.BlockPartManager;
 import me.ybbbno.radio.block.data.RadioData;
 import me.ybbbno.radio.block.data.RadioDataConfigManager;
@@ -62,6 +63,12 @@ public class RadioBlockManager extends BasicManagerHandler {
     public void updateVisibility() {
         for (RadioBlock block : radioBlocks) {
             Location loc = block.data().location();
+
+            if (!loc.isChunkLoaded()) {
+                hideBlock(block);
+                continue;
+            }
+
             boolean hasPlayersNearby = false;
 
             for (Player player : loc.getWorld().getPlayers()) {
@@ -136,22 +143,52 @@ public class RadioBlockManager extends BasicManagerHandler {
     }
 
     private void showBlock(RadioBlock block) {
-        if (block.parts() == null) block.parts(blockPartsM.getBlockParts(block.data()));
-        if (block.indicator() == null) block.indicator(blockPartsM.getFrequencyIndicator(block.data()));
-        if (managerS.getLocational(block.data().location()) == null)
+        Location loc = block.data().location();
+
+        if (!loc.isChunkLoaded()) return;
+
+        if (block.parts() == null || !arePartsValid(block.parts())) {
+            block.parts(blockPartsM.getBlockParts(block.data()));
+        } else {
+            blockPartsM.updateParts(block);
+        }
+
+        if (block.indicator() == null || !block.indicator().isValid()) {
+            block.indicator(blockPartsM.getFrequencyIndicator(block.data()));
+        } else {
+            blockPartsM.changeFrequencyIndicator(block);
+        }
+
+        if (managerS.getLocational(block.data().location()) == null) {
             managerS.createAudioPlayer(block.data().location(), 16, RadioBlockVoicechatListener.RADIO_VOLUME_CATEGORY);
+        }
     }
+    
 
     private void hideBlock(RadioBlock block) {
         if (block.parts() != null) {
-            block.parts().forEach(part -> part.display().remove());
+            block.parts().forEach(part -> {
+                if (part.display() != null && part.display().isValid()) {
+                    part.display().remove();
+                }
+            });
             block.parts(null);
         }
+
         if (block.indicator() != null) {
-            block.indicator().remove();
+            if (block.indicator().isValid()) {
+                block.indicator().remove();
+            }
             block.indicator(null);
         }
-        if (managerS.getLocational(block.data().location()) != null)
+
+        if (managerS.getLocational(block.data().location()) != null) {
             managerS.destroyByLocation(block.data().location());
+        }
+    }
+
+    private boolean arePartsValid(List<BlockPart> parts) {
+        if (parts == null) return false;
+        return parts.stream().allMatch(p -> p.display() != null && p.display().isValid());
     }
 }
